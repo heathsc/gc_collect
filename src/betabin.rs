@@ -1,5 +1,5 @@
 use anyhow::Context;
-use std::{fs::File, io::Write, path::Path};
+use std::{io::Write, path::Path};
 
 use compress_io::compress::CompressIo;
 use libm::lgamma;

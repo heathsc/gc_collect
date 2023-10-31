@@ -10,7 +10,6 @@ pub struct Config {
     output_file: Option<PathBuf>,
     ref_dist: Option<RefDist>,
     threads: usize,
-    merge: bool,
 }
 
 impl Config {
@@ -25,9 +24,6 @@ impl Config {
     }
     pub fn ref_dist(&self) -> Option<&RefDist> {
         self.ref_dist.as_ref()
-    }
-    pub fn merge(&self) -> bool {
-        self.merge
     }
 }
 pub fn handle_cli() -> anyhow::Result<Config> {
@@ -47,8 +43,6 @@ pub fn handle_cli() -> anyhow::Result<Config> {
         .map(|x| *x as usize)
         .unwrap_or_else(|| num_cpus::get().min(input_files.len()));
 
-    let merge = m.get_flag("merge");
-
     let ref_dist = match m.get_one::<PathBuf>("ref") {
         Some(p) => Some(RefDist::from_json_file(&p).with_context(|| {
             format!(
@@ -64,6 +58,5 @@ pub fn handle_cli() -> anyhow::Result<Config> {
         output_file,
         threads,
         ref_dist,
-        merge,
     })
 }

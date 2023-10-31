@@ -100,7 +100,6 @@ struct TempDataSet {
     gc_hash: HashMap<String, u64>,
 }
 
-#[derive(Debug)]
 pub struct DataSet {
     path: PathBuf,
     trim: usize,
@@ -108,6 +107,7 @@ pub struct DataSet {
     max_read_length: usize,
     bisulfite: BisulfiteType,
     fli: Fli,
+    #[allow(unused)]
     cts: Counts,
     per_pos_cts: Vec<Counts>,
     gc_counts: Vec<(GcHistKey, GcHistVal)>,
@@ -132,29 +132,21 @@ impl DataSet {
     pub fn gc_counts(&self) -> &[(GcHistKey, GcHistVal)] {
         &self.gc_counts
     }
-    pub fn cts(&self) -> &Counts {
-        &self.cts
-    }
-    pub fn per_pos_cts(&self) -> &[Counts] {
-        &self.per_pos_cts
-    }
-    pub fn fli(&self) -> &Fli {
-        &self.fli
-    }
     pub fn bisulfite(&self) -> &BisulfiteType {
         &self.bisulfite
     }
     pub fn max_read_len(&self) -> usize {
         self.max_read_length
     }
-    pub fn min_qual(&self) -> u8 {
-        self.min_qual
-    }
     pub fn trim(&self) -> usize {
         self.trim
     }
 
-    fn from_temp_dataset(mut t: TempDataSet, p: &Path) -> anyhow::Result<Self> {
+    pub fn per_pos_cts(&self) -> &[Counts] {
+        &self.per_pos_cts
+    }
+
+    fn from_temp_dataset(t: TempDataSet, p: &Path) -> anyhow::Result<Self> {
         let TempDataSet {
             trim,
             min_qual,

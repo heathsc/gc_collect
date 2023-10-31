@@ -1,17 +1,12 @@
-use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
+use std::{collections::HashMap, path::Path};
 
 use serde::Deserialize;
 
 use anyhow::Context;
 use compress_io::compress::CompressIo;
-use serde_json::{from_reader, from_value, Value};
+use serde_json::from_reader;
 
 use crate::betabin::lbeta;
-
-fn get_value<'a>(js: &'a Value, ix: &str) -> anyhow::Result<&'a Value> {
-    js.get(ix)
-        .ok_or_else(|| anyhow!("Could not find {ix} field"))
-}
 
 #[derive(Deserialize)]
 struct RSCounts {
@@ -74,7 +69,7 @@ pub struct Counts {
 }
 
 impl Counts {
-    fn from_rs_counts(mut rs: RSCounts) -> anyhow::Result<Self> {
+    fn from_rs_counts(rs: RSCounts) -> anyhow::Result<Self> {
         let RSCounts {
             mut counts,
             mut bisulfite_counts,
@@ -118,7 +113,7 @@ pub struct RefDist {
 }
 
 impl RefDist {
-    fn from_raw(mut raw: RawRef) -> anyhow::Result<Self> {
+    fn from_raw(raw: RawRef) -> anyhow::Result<Self> {
         let RawRef {
             read_lengths,
             read_length_specific_counts: mut rlsc,
@@ -140,7 +135,7 @@ impl RefDist {
             .bufreader()
             .with_context(|| format!("Could not open {} for input", p.display()))?;
 
-        let mut raw: RawRef =
+        let raw: RawRef =
             from_reader(rdr).with_context(|| format!("Error parsing JSON file {}", p.display()))?;
 
         info!("Reference distributions read from {}", p.display());

@@ -49,13 +49,6 @@ pub(super) fn cli_model() -> Command {
                 .help("Reference JSON file produced by analyze_ref_gc"),
         )
         .arg(
-            Arg::new("merge")
-                .action(ArgAction::SetTrue)
-                .short('m')
-                .long("merge")
-                .help("Merge results per library"),
-        )
-        .arg(
             Arg::new("output")
                 .short('o')
                 .long("output")

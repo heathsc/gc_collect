@@ -12,12 +12,7 @@ impl Coefficient {
     pub fn estimate(&self) -> f64 {
         self.estimate
     }
-    pub fn standard_error(&self) -> f64 {
-        self.standard_error
-    }
-    pub fn df(&self) -> usize {
-        self.df
-    }
+
     pub fn t_statistic(&self) -> f64 {
         self.estimate / self.standard_error
     }
@@ -30,6 +25,7 @@ impl Coefficient {
     }
 }
 #[derive(Debug)]
+#[allow(unused)]
 pub struct SimpleRegression {
     intercept: Coefficient,
     slope: Coefficient,
@@ -38,20 +34,8 @@ pub struct SimpleRegression {
 }
 
 impl SimpleRegression {
-    pub fn intercept(&self) -> &Coefficient {
-        &self.intercept
-    }
     pub fn slope(&self) -> &Coefficient {
         &self.slope
-    }
-    pub fn residual_ss(&self) -> f64 {
-        self.residual_ss
-    }
-    pub fn residual_df(&self) -> usize {
-        self.residual_df
-    }
-    pub fn residual_var(&self) -> f64 {
-        self.residual_ss / (self.residual_df as f64)
     }
 }
 
@@ -132,6 +116,7 @@ pub fn simple_regression(obs: &[(f64, f64)]) -> anyhow::Result<SimpleRegression>
 }
 
 mod test {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]

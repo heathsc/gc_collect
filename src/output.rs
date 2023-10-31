@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Context;
 use compress_io::compress::CompressIo;
 use crossbeam_channel::Receiver;
 use std::io::Write;
