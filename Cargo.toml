@@ -1,0 +1,22 @@
+[package]
+name = "gc_collect"
+version = "0.1.0"
+edition = "2021"
+authors = ["Simon Heath <simon.heath@gmail.com>"]
+description = "Collect stats from fastqc_gc and make report"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "~0.4"
+stderrlog = "~0.5"
+anyhow = "~1.0"
+clap = {version = "~4", features = ["cargo"]}
+crossbeam-channel =  "~0.5"
+crossbeam-utils = "~0.8"
+num_cpus = "1.13.0"
+libm =  "~0.2"
+serde = {version = "~1.0", features = ["derive"]}
+serde_json = "~1.0"
+compress_io = "~0.5"
+stat_functions = {git = "https://github.com/heathsc/stat_functions.git"}
