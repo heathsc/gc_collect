@@ -1,8 +1,9 @@
 use std::{
     collections::{BTreeMap, HashMap},
+    fmt,
     fs::File,
     io::BufReader,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use anyhow::Context;
@@ -18,6 +19,22 @@ pub enum BisulfiteType {
     Reverse,
     NonStranded,
 }
+
+impl fmt::Display for BisulfiteType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::None => "None",
+                Self::Forward => "Forward",
+                Self::Reverse => "Reverse",
+                Self::NonStranded => "Non-stranded",
+            }
+        )
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Fli {
     sample: Option<String>,
@@ -28,6 +45,24 @@ pub struct Fli {
     read_end: Option<u8>,
 }
 
+impl fmt::Display for Fli {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let output_opt_u8 = |x: Option<u8>, f: &mut fmt::Formatter| -> fmt::Result {
+            if let Some(x) = x {
+                write!(f, "\t{}", x)
+            } else {
+                write!(f, "\tNA")
+            }
+        };
+
+        write!(f, "{}", self.sample.as_deref().unwrap_or("NA"))?;
+        write!(f, "\t{}", self.library.as_deref().unwrap_or("NA"))?;
+        write!(f, "\t{}", self.flowcell.as_deref().unwrap_or("NA"))?;
+        write!(f, "\t{}", self.index.as_deref().unwrap_or("NA"))?;
+        output_opt_u8(self.lane, f)?;
+        output_opt_u8(self.read_end, f)
+    }
+}
 #[derive(Debug, Deserialize)]
 #[allow(non_snake_case)]
 struct TempCounts {
@@ -67,6 +102,7 @@ struct TempDataSet {
 
 #[derive(Debug)]
 pub struct DataSet {
+    path: PathBuf,
     trim: usize,
     min_qual: u8,
     max_read_length: usize,
@@ -75,6 +111,21 @@ pub struct DataSet {
     cts: Counts,
     per_pos_cts: Vec<Counts>,
     gc_counts: Vec<(GcHistKey, GcHistVal)>,
+}
+
+impl fmt::Display for DataSet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}\t{}\t{}\t{}\t{}",
+            self.fli,
+            self.path.display(),
+            self.bisulfite,
+            self.trim,
+            self.min_qual
+        )?;
+        Ok(())
+    }
 }
 
 impl DataSet {
@@ -103,7 +154,7 @@ impl DataSet {
         self.trim
     }
 
-    fn from_temp_dataset(mut t: TempDataSet) -> anyhow::Result<Self> {
+    fn from_temp_dataset(mut t: TempDataSet, p: &Path) -> anyhow::Result<Self> {
         let TempDataSet {
             trim,
             min_qual,
@@ -129,8 +180,10 @@ impl DataSet {
             let val = GcHistVal::make(&key, v);
             gc_counts.push((key, val));
         }
+        let path = p.to_owned();
 
         Ok(Self {
+            path,
             trim,
             min_qual,
             max_read_length,
@@ -150,5 +203,5 @@ pub fn read_json<P: AsRef<Path>>(p: P) -> anyhow::Result<DataSet> {
 
     let rdr = BufReader::new(file);
     let tmp: TempDataSet = from_reader(rdr).with_context(|| "Error parsing JSON file")?;
-    DataSet::from_temp_dataset(tmp)
+    DataSet::from_temp_dataset(tmp, p)
 }

@@ -7,6 +7,7 @@ use crate::reference::RefDist;
 
 pub struct Config {
     input_files: Vec<PathBuf>,
+    output_file: Option<PathBuf>,
     ref_dist: Option<RefDist>,
     threads: usize,
     merge: bool,
@@ -15,6 +16,9 @@ pub struct Config {
 impl Config {
     pub fn input_files(&self) -> &[PathBuf] {
         &self.input_files
+    }
+    pub fn output_file(&self) -> Option<&Path> {
+        self.output_file.as_deref()
     }
     pub fn threads(&self) -> usize {
         self.threads
@@ -37,6 +41,7 @@ pub fn handle_cli() -> anyhow::Result<Config> {
         .map(|p: &PathBuf| p.to_owned())
         .collect();
 
+    let output_file = m.get_one::<PathBuf>("output").map(|p| p.to_owned());
     let threads = m
         .get_one::<u64>("threads")
         .map(|x| *x as usize)
@@ -56,6 +61,7 @@ pub fn handle_cli() -> anyhow::Result<Config> {
 
     Ok(Config {
         input_files,
+        output_file,
         threads,
         ref_dist,
         merge,

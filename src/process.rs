@@ -1,7 +1,8 @@
+use std::{fmt, io::Write, path::Path};
+
 use anyhow::Context;
 use compress_io::compress::CompressIo;
-use crossbeam_channel::{Sender, Receiver};
-use std::{io::Write, path::Path};
+use crossbeam_channel::{Receiver, Sender};
 
 use crate::{
     betabin::*,
@@ -16,6 +17,34 @@ pub struct DataResults {
     ref_mean_gc: Option<f64>,
     kl_distance: Option<f64>,
     regression: Option<Vec<SimpleRegression>>,
+}
+
+impl fmt::Display for DataResults {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let output_opt_f64 = |x: Option<f64>, f: &mut fmt::Formatter| -> fmt::Result {
+            if let Some(x) = x {
+                write!(f, "\t{:.5}", x)
+            } else {
+                write!(f, "\tNA")
+            }
+        };
+
+        write!(f, "{}", self.mean_gc)?;
+        output_opt_f64(self.ref_mean_gc, f)?;
+        output_opt_f64(self.kl_distance, f)?;
+        if let Some(v) = self.regression.as_ref() {
+            for i in [0, 1, 3, 2] {
+                let r = &v[i];
+                write!(
+                    f,
+                    "\t{:.5e}\t{:.5}",
+                    r.slope().estimate(),
+                    r.slope().p().log10()
+                )?
+            }
+        }
+        Ok(())
+    }
 }
 
 fn compare_to_reference(
@@ -119,33 +148,32 @@ fn analyze_dataset(cfg: &Config, path: &Path, d: &DataSet) -> anyhow::Result<Dat
         regression,
     })
 }
-fn process_file(cfg: &Config, p: &Path) -> anyhow::Result<DataResults> {
+fn process_file(cfg: &Config, p: &Path) -> anyhow::Result<(DataSet, DataResults)> {
     trace!("Reading from {}", p.display());
     let d = read_json(p).with_context(|| format!("Error reading from {}", p.display()))?;
     let dres = analyze_dataset(cfg, p, &d)?;
-    /* print!(
-        "{:?}\t{:?}\t{:?}",
-        dres.mean_gc, dres.ref_mean_gc, dres.kl_distance
-    );
-    if let Some(v) = dres.regression.as_ref() {
-        for r in v {
-            print!("\t{:?}\t{:?}", r.slope().estimate(), r.slope().p())
-        }
-    }
-    println!(); */
-    Ok(dres)
+    Ok((d, dres))
 }
 
-pub fn process_thread(cfg: &Config, ix: usize, rx: Receiver<&Path>, sd: Sender<DataResults>) -> anyhow::Result<()> {
+pub fn process_thread(
+    cfg: &Config,
+    ix: usize,
+    rx: Receiver<&Path>,
+    sd: Sender<(DataSet, DataResults)>,
+) -> anyhow::Result<()> {
     debug!("Process thread {ix} starting up");
     while let Ok(p) = rx.recv() {
         trace!(
             "Process thread {ix} received file {} for processing",
             p.display()
         );
-        let dres = process_file(cfg, p)?;
-        trace!("Process thread {ix} finished processing file {}", p.display());
-        sd.send(dres).with_context(|| "Error sending results to output thread")?
+        let (data, dres) = process_file(cfg, p)?;
+        trace!(
+            "Process thread {ix} finished processing file {}",
+            p.display()
+        );
+        sd.send((data, dres))
+            .with_context(|| "Error sending results to output thread")?
     }
     debug!("Process thread {ix} closing down");
     Ok(())

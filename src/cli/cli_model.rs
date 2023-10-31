@@ -56,6 +56,14 @@ pub(super) fn cli_model() -> Command {
                 .help("Merge results per library"),
         )
         .arg(
+            Arg::new("output")
+                .short('o')
+                .long("output")
+                .value_parser(value_parser!(PathBuf))
+                .value_name("OUTPUT")
+                .help("Main output file [default: <stdout>]"),
+        )
+        .arg(
             Arg::new("input")
                 .value_parser(value_parser!(PathBuf))
                 .value_name("INPUT")
