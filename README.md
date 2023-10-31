@@ -1,4 +1,4 @@
-# fastq_gc
+# gc_collect
 Utility to collect GC analysis from fastq_gc generated from multiple input files
 
 Changes
