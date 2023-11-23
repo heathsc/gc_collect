@@ -57,6 +57,13 @@ pub(super) fn cli_model() -> Command {
                 .help("Main output file [default: <stdout>]"),
         )
         .arg(
+            Arg::new("no_header")
+                .short('H')
+                .long("no-header")
+                .action(ArgAction::SetTrue)
+                .help("Do not add header to output file"),
+        )
+        .arg(
             Arg::new("input")
                 .value_parser(value_parser!(PathBuf))
                 .value_name("INPUT")

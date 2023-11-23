@@ -10,6 +10,7 @@ pub struct Config {
     output_file: Option<PathBuf>,
     ref_dist: Option<RefDist>,
     threads: usize,
+    no_header: bool,
 }
 
 impl Config {
@@ -24,6 +25,9 @@ impl Config {
     }
     pub fn ref_dist(&self) -> Option<&RefDist> {
         self.ref_dist.as_ref()
+    }
+    pub fn no_header(&self) -> bool {
+        self.no_header
     }
 }
 pub fn handle_cli() -> anyhow::Result<Config> {
@@ -52,11 +56,13 @@ pub fn handle_cli() -> anyhow::Result<Config> {
         })?),
         None => None,
     };
+    let no_header = m.get_flag("no_header");
 
     Ok(Config {
         input_files,
         output_file,
         threads,
         ref_dist,
+        no_header,
     })
 }
