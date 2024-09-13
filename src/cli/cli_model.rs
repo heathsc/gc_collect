@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::{command, value_parser, Arg, ArgAction, Command};
+use clap::{builder::PossibleValue, command, value_parser, Arg, ArgAction, Command, ValueEnum};
 
 use crate::utils::LogLevel;
 
@@ -33,6 +33,22 @@ pub(super) fn cli_model() -> Command {
                 .help("Silence all output"),
         )
         .arg(
+            Arg::new("merge")
+                .short('m')
+                .action(ArgAction::SetTrue)
+                .long("merge")
+                .help("Merge results in grouups"),
+        )
+        .arg(
+            Arg::new("merge_by")
+                .short('M')
+                .long("merge-by")
+                .value_name("MERGE KEY")
+                .value_parser(value_parser!(MergeKey))
+                .ignore_case(true)
+                .help("Set merge key"),
+        )
+        .arg(
             Arg::new("threads")
                 .short('t')
                 .long("threads")
@@ -47,6 +63,14 @@ pub(super) fn cli_model() -> Command {
                 .value_parser(value_parser!(PathBuf))
                 .value_name("FILE")
                 .help("Reference JSON file produced by analyze_ref_gc"),
+        )
+        .arg(
+            Arg::new("kmers")
+                .long("kmers")
+                .short('k')
+                .value_parser(value_parser!(PathBuf))
+                .value_name("KM FILE")
+                .help("Input KM file with kmers for coverage estimation"),
         )
         .arg(
             Arg::new("output")
@@ -71,4 +95,35 @@ pub(super) fn cli_model() -> Command {
                 .required(true)
                 .help("Input JSON file(s) from fastq_gc"),
         )
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum MergeKey {
+    Default,
+    Sample,
+    Barcode,
+    Library,
+    Fli,
+}
+
+impl ValueEnum for MergeKey {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[
+            Self::Default,
+            Self::Sample,
+            Self::Barcode,
+            Self::Library,
+            Self::Fli,
+        ]
+    }
+
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        match self {
+            Self::Default => Some(PossibleValue::new("default")),
+            Self::Sample => Some(PossibleValue::new("sample")),
+            Self::Barcode => Some(PossibleValue::new("barcode")),
+            Self::Library => Some(PossibleValue::new("library")),
+            Self::Fli => Some(PossibleValue::new("fli")),
+        }
+    }
 }

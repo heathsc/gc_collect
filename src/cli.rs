@@ -1,9 +1,12 @@
-use anyhow::Context;
 use std::path::{Path, PathBuf};
+
+use anyhow::Context;
+use compress_io::compress::CompressIo;
 
 mod cli_model;
 
-use crate::reference::RefDist;
+use crate::{kmcv::Kmcv, reference::RefDist};
+pub use cli_model::MergeKey;
 
 pub struct Config {
     input_files: Vec<PathBuf>,
@@ -11,6 +14,8 @@ pub struct Config {
     ref_dist: Option<RefDist>,
     threads: usize,
     no_header: bool,
+    kmcv: Option<Kmcv>,
+    merge_key: Option<MergeKey>,
 }
 
 impl Config {
@@ -28,6 +33,12 @@ impl Config {
     }
     pub fn no_header(&self) -> bool {
         self.no_header
+    }
+    pub fn kmcv(&self) -> Option<&Kmcv> {
+        self.kmcv.as_ref()
+    }
+    pub fn merge_key(&self) -> Option<MergeKey> {
+        self.merge_key
     }
 }
 pub fn handle_cli() -> anyhow::Result<Config> {
@@ -58,11 +69,37 @@ pub fn handle_cli() -> anyhow::Result<Config> {
     };
     let no_header = m.get_flag("no_header");
 
+    let merge_key = m.get_one::<MergeKey>("merge_by").copied().or_else(|| {
+        if m.get_flag("merge") {
+            Some(MergeKey::Default)
+        } else {
+            None
+        }
+    });
+
+    let kmcv = match m.get_one::<PathBuf>("kmers") {
+        Some(p) => {
+            let mut rdr = CompressIo::new()
+                .path(p)
+                .bufreader()
+                .with_context(|| "Could not open kmer file for input")?;
+
+            debug!("Opened kmer file for input");
+            Some(
+                Kmcv::read(&mut rdr)
+                    .with_context(|| format!("Could not read kmer file {}", p.display()))?,
+            )
+        }
+        None => None,
+    };
+
     Ok(Config {
         input_files,
         output_file,
+        merge_key,
         threads,
         ref_dist,
         no_header,
+        kmcv,
     })
 }

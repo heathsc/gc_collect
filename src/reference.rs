@@ -19,12 +19,12 @@ struct RawRef {
     read_lengths: Vec<u32>,
     read_length_specific_counts: HashMap<u32, RSCounts>,
 }
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct GcHistKey(f64, f64);
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd)]
+pub struct GcHistKey(u32, u32);
 
 impl GcHistKey {
     pub fn counts(&self) -> (f64, f64) {
-        (self.0, self.1)
+        (self.0 as f64, self.1 as f64)
     }
 }
 
@@ -33,7 +33,7 @@ impl GcHistKey {
         if let Some((s1, s2)) = s.split_once(':') {
             let c1 = s1.parse::<u32>()?;
             let c2 = s2.parse::<u32>()?;
-            Ok(Self(c1 as f64, c2 as f64))
+            Ok(Self(c1, c2))
         } else {
             Err(anyhow!("counts keys not in correct format"))
         }

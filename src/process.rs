@@ -1,4 +1,9 @@
-use std::{fmt, io::Write, path::Path};
+use std::{
+    ffi::OsStr,
+    fmt,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
 use compress_io::compress::CompressIo;
@@ -7,6 +12,7 @@ use crossbeam_channel::{Receiver, Sender};
 use crate::{
     betabin::*,
     cli::Config,
+    kmers::KmerCoverage,
     read::{read_json, BisulfiteType, DataSet},
     simple_regression::*,
 };
@@ -17,6 +23,7 @@ pub struct DataResults {
     ref_mean_gc: Option<f64>,
     kl_distance: Option<f64>,
     regression: Option<Vec<SimpleRegression>>,
+    kmer_coverage: Option<KmerCoverage>,
 }
 
 impl fmt::Display for DataResults {
@@ -67,14 +74,15 @@ fn compare_to_reference(
 
             (
                 ref_counts,
-                ref_counts.map(|ref_counts| kl_distance(d.gc_counts(), ref_counts)),
+                ref_counts.map(|ref_counts| kl_distance(d.gc_counts().unwrap(), ref_counts)),
                 ref_counts.map(mean_gc),
             )
         }
         None => (None, None, None),
     };
 
-    output_gc_hist(path, d.gc_counts(), r).with_context(|| "Error writing gc distribution file")?;
+    output_gc_hist(path, d.gc_counts().unwrap(), r)
+        .with_context(|| "Error writing gc distribution file")?;
     Ok((kl, gc))
 }
 
@@ -136,22 +144,33 @@ fn output_per_cycle_bases(d: &DataSet, p: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn analyze_dataset(cfg: &Config, path: &Path, d: &DataSet) -> anyhow::Result<DataResults> {
+fn analyze_dataset(cfg: &Config, d: &DataSet) -> anyhow::Result<DataResults> {
+    let path = d.path();
     output_per_cycle_bases(d, path).with_context(|| "Error writing per cycle base distribution")?;
-    let mean_gc = mean_gc(d.gc_counts());
+    let mean_gc = mean_gc(d.gc_counts().unwrap());
     let (kl_distance, ref_mean_gc) = compare_to_reference(cfg, path, d)?;
     let regression = base_content_regressions(d);
+
+    let kmer_coverage = if let Some(kc) = d.kmer_counts() {
+        kc.kmer_coverage(cfg)
+            .with_context(|| "Error processing kmer coverage")?
+    } else {
+        None
+    };
+
     Ok(DataResults {
         mean_gc,
         kl_distance,
         ref_mean_gc,
         regression,
+        kmer_coverage,
     })
 }
 fn process_file(cfg: &Config, p: &Path) -> anyhow::Result<(DataSet, DataResults)> {
     trace!("Reading from {}", p.display());
-    let d = read_json(p).with_context(|| format!("Error reading from {}", p.display()))?;
-    let dres = analyze_dataset(cfg, p, &d)?;
+    let mut d = read_json(p).with_context(|| format!("Error reading from {}", p.display()))?;
+    d.mk_gc_counts()?;
+    let dres = analyze_dataset(cfg, &d)?;
     Ok((d, dres))
 }
 
@@ -176,5 +195,26 @@ pub fn process_thread(
             .with_context(|| "Error sending results to output thread")?
     }
     debug!("Process thread {ix} closing down");
+    Ok(())
+}
+
+pub fn analyze_thread(
+    cfg: &Config,
+    ix: usize,
+    rx: Receiver<DataSet>,
+    sd: Sender<(DataSet, DataResults)>,
+) -> anyhow::Result<()> {
+    debug!("Analyze thread {ix} starting up");
+    while let Ok(d) = rx.recv() {
+        trace!("Analyze thread {ix} received dataset for processing",);
+        let dres = analyze_dataset(cfg, &d)?;
+        trace!(
+            "Analyze thread {ix} finished processing file {}",
+            d.path().display()
+        );
+        sd.send((d, dres))
+            .with_context(|| "Error sending results to output thread")?
+    }
+    debug!("Analyze thread {ix} closing down");
     Ok(())
 }
