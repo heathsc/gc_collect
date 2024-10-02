@@ -50,7 +50,11 @@ impl fmt::Display for DataResults {
                 )?
             }
         }
-        Ok(())
+        if let Some(kc) = self.kmer_coverage.as_ref() {
+            write!(f, "\t{kc}")
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -153,7 +157,6 @@ fn analyze_dataset(cfg: &Config, d: &DataSet) -> anyhow::Result<DataResults> {
 
     let kmer_coverage = if let Some(kc) = d.kmer_counts() {
         kc.kmer_coverage(cfg)
-            .with_context(|| "Error processing kmer coverage")?
     } else {
         None
     };

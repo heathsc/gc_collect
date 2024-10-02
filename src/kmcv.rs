@@ -125,6 +125,12 @@ pub struct Target {
 }
 
 impl Target {
+    #[inline]
+    pub fn size(&self) -> u32 {
+        self.end + 1 - self.start
+    }
+}
+impl Target {
     fn read<R: BufRead>(rdr: &mut R, n_contigs: u32) -> anyhow::Result<(Self, u32)> {
         let mut buf = [0u8; 12];
         rdr.read_exact(&mut buf)
@@ -237,6 +243,10 @@ impl Kmcv {
         self.header.core.kmer_length
     }
 
+    pub fn get_target_size(&self, ix: usize) -> Option<u32> {
+        self.targets.get(ix).map(|t| t.size())
+    }
+    
     /// Private functions
     fn read_contig_blocks<R: BufRead>(&mut self, rdr: &mut R) -> anyhow::Result<()> {
         self.contigs.clear();
