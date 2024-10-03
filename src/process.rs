@@ -49,6 +49,8 @@ impl fmt::Display for DataResults {
                     r.slope().p().log10()
                 )?
             }
+        } else {
+            write!(f,"\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA")?
         }
         if let Some(kc) = self.kmer_coverage.as_ref() {
             write!(f, "\t{kc}")

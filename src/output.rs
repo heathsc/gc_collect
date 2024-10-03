@@ -14,9 +14,15 @@ pub fn output_thread(cfg: &Config, rx: Receiver<(DataSet, DataResults)>) -> anyh
         .with_context(|| "Could not open output file")?;
 
     if !cfg.no_header() {
-        writeln!(
+        write!(
             wrt,
-            "Sample\tBarcode\tLibrary\tFlowcell\tIndex\tLane\tRead-end\tFile\tBisulfite-type\tTrim\tMin-qual\tgc\tref-gc\tKL-distance\tb(A)\tlog10 p_b(A)\tb(C)\tlog10 p_b(C)\tb(G)\tlog10 p_b(G)\tb(T)\tlog10 p_b(T)")?;
+            "Sample\tBarcode\tLibrary\tFlowcell\tIndex\tLane\tRead-end\tFile\tBisulfite-type\tTrim\tMin-qual\tgc\tref-gc\tKL-distance\
+            \tb(A)\tlog10 p_b(A)\tb(C)\tlog10 p_b(C)\tb(G)\tlog10 p_b(G)\tb(T)\tlog10 p_b(T)"
+        )?;
+        if cfg.kmcv().is_some() {
+            write!(wrt,"\tTotal-reads\tMapped-reads\tTotal-bases\tMapped-bases\tMean-coverage\tMedian-coverage\tMedian/Mean\tDispersion\tFold_80_base_penalty")?
+        }
+        writeln!(wrt)?
     }
     while let Ok((data, res)) = rx.recv() {
         writeln!(wrt, "{}\t{}", data, res)?
