@@ -13,10 +13,6 @@ fn get_u32_from_slice(p: &[u8]) -> u32 {
     u32::from_le_bytes(p.try_into().expect("Slice has wrong size"))
 }
 
-fn get_u64_from_slice(p: &[u8]) -> u64 {
-    u64::from_le_bytes(p.try_into().expect("Slice has wrong size"))
-}
-
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
 pub struct KmcvHeaderCore {
     version: [u8; 2],
@@ -27,19 +23,9 @@ pub struct KmcvHeaderCore {
     rnd_id: u32,
 }
 
-impl KmcvHeaderCore {
-    pub fn n_targets(&self) -> usize {
-        self.n_targets as usize
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct KmcvHeader {
     core: KmcvHeaderCore,
-    mapped: u64,
-    on_target: u64,
-    redundant: u64,
-    total_hits: u64,
 }
 
 impl KmcvHeader {
@@ -65,57 +51,17 @@ impl KmcvHeader {
         let rnd_id = get_u32_from_slice(&buf[8..12]);
         let n_contigs = get_u32_from_slice(&buf[12..16]);
         let n_targets = get_u32_from_slice(&buf[16..20]);
-        let mapped = get_u64_from_slice(&buf[20..28]);
-        let on_target = get_u64_from_slice(&buf[28..36]);
-        let redundant = get_u64_from_slice(&buf[36..44]);
-        let total_hits = get_u64_from_slice(&buf[44..]);
 
-        if mapped < on_target || on_target < redundant {
-            Err(anyhow!("Kmer totals are inconsistent"))
-        } else {
-            Ok(Self {
-                core: KmcvHeaderCore {
-                    version,
-                    kmer_length,
-                    max_hits,
-                    rnd_id,
-                    n_contigs,
-                    n_targets,
-                },
-                mapped,
-                on_target,
-                redundant,
-                total_hits,
-            })
-        }
-    }
-
-    pub fn read_close<R: BufRead>(&self, rdr: &mut R) -> anyhow::Result<()> {
-        let mut buf: [u8; 8] = [0; 8];
-
-        let e = || "Error reading closing block from kmer file";
-
-        rdr.read_exact(&mut buf).with_context(e)?;
-
-        // Check magic number
-        if buf[4..8] != [b'V', b'C', b'M', b'K'] {
-            return Err(anyhow!(
-                "Incorrect magic number from closing block of kmer file"
-            ));
-        }
-
-        // Check random ID
-        let rnd_id = get_u32_from_slice(&buf[0..4]);
-        if rnd_id != self.core.rnd_id {
-            return Err(anyhow!("Incorrect run id from closing block of kmer file"));
-        }
-
-        // Check we are at EOF
-        if rdr.read(&mut buf).with_context(e)? != 0 {
-            Err(anyhow!("Trailing garbage at end of kmer file"))
-        } else {
-            Ok(())
-        }
+        Ok(Self {
+            core: KmcvHeaderCore {
+                version,
+                kmer_length,
+                max_hits,
+                rnd_id,
+                n_contigs,
+                n_targets,
+            },
+        })
     }
 }
 
@@ -235,18 +181,10 @@ impl Kmcv {
         Ok(kmcv)
     }
 
-    pub fn n_targets(&self) -> usize {
-        self.targets.len()
-    }
-
-    pub fn kmer_length(&self) -> u8 {
-        self.header.core.kmer_length
-    }
-
     pub fn get_target_size(&self, ix: usize) -> Option<u32> {
         self.targets.get(ix).map(|t| t.size())
     }
-    
+
     /// Private functions
     fn read_contig_blocks<R: BufRead>(&mut self, rdr: &mut R) -> anyhow::Result<()> {
         self.contigs.clear();

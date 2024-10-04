@@ -55,7 +55,7 @@ impl KmerCounts {
             .counts
             .iter()
             .enumerate()
-            .map(|(target_ix, (reads, bases))| {
+            .map(|(target_ix, (_, bases))| {
                 let target_size = kmcv.get_target_size(target_ix).expect("Bad target ix") as f64;
                 // println!("ACK:\t{target_ix}\t{target_size}\t{reads}\t{bases}\t{:.2}\t{:.2}", if *reads > 0 { *bases as f64 / *reads as f64 } else { 0.0 }, *bases as f64 / target_size);
                 *bases as f64 / target_size
@@ -65,7 +65,7 @@ impl KmerCounts {
         let l = v.len();
         let mean = v.iter().sum::<f64>() / (l as f64);
         let quartiles = [v[l >> 2], v[l >> 1], v[(3 * l) >> 2]];
-
+ 
         // For fold_80_base_penalty, we want to calculate the mean and 20th percentile of targets with non-zero coverage
         let mut i = l;
         for (j, c) in v.iter().enumerate() {

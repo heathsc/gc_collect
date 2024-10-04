@@ -1,8 +1,7 @@
 use std::{
-    ffi::OsStr,
     fmt,
     io::Write,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use anyhow::Context;

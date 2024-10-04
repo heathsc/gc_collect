@@ -3,7 +3,6 @@ extern crate log;
 #[macro_use]
 extern crate anyhow;
 
-use anyhow::Context;
 use crossbeam_channel::{bounded, unbounded};
 use crossbeam_utils::thread::{self, ScopedJoinHandle};
 
