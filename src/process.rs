@@ -42,15 +42,15 @@ impl fmt::Display for DataResults {
         if let Some(v) = self.regression.as_ref() {
             for i in [0, 1, 3, 2] {
                 let r = &v[i];
-                write!(
-                    f,
-                    "\t{:.5e}\t{:.5}",
-                    r.slope().estimate(),
-                    r.slope().p().log10()
-                )?
+                write!(f, "\t{:.5e}\t", r.slope().estimate(),)?;
+                if let Some(p) = r.slope().p() {
+                    write!(f, "{:.5}", p)?
+                } else {
+                    write!(f, "NA")?
+                }
             }
         } else {
-            write!(f,"\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA")?
+            write!(f, "\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA")?
         }
         if let Some(kc) = self.kmer_coverage.as_ref() {
             write!(f, "\t{kc}")
@@ -107,12 +107,19 @@ fn base_content_regressions(d: &DataSet) -> Option<Vec<SimpleRegression>> {
         for (x, y) in ct[x0..]
             .iter()
             .map(|c| {
-                let s = c.cts()[..4].iter().sum::<u64>() as f64;
-                c.cts()[ix] as f64 / s
+                let s = c.cts()[..4].iter().sum::<u64>();
+                if s > 0 {
+                    Some(c.cts()[ix] as f64 / s as f64)
+                } else {
+                    None
+                }
             })
             .enumerate()
         {
-            obs.push(((x as f64) / scale, y))
+            if let Some(y) = y {
+                // eprintln!("Add: {ix}\t{x}\t{y}\t{scale}");
+                obs.push(((x as f64) / scale, y))
+            }
         }
         let reg = match simple_regression(&obs) {
             Ok(r) => r,
@@ -121,7 +128,6 @@ fn base_content_regressions(d: &DataSet) -> Option<Vec<SimpleRegression>> {
                 return None;
             }
         };
-
         res.push(reg)
     }
     Some(res)
@@ -139,13 +145,16 @@ fn output_per_cycle_bases(d: &DataSet, p: &Path) -> anyhow::Result<()> {
     let trim = d.trim();
     let cts = d.per_pos_cts();
     for (i, ct) in cts.iter().enumerate() {
-        let s = ct.cts()[..4].iter().sum::<u64>() as f64;
-        write!(wrt, "{}", i + 1 + trim)?;
-        for k in [0, 1, 3, 2] {
-            let y = (ct.cts()[k] as f64) / s;
-            write!(wrt, "\t{:.5}", y)?;
+        let s = ct.cts()[..4].iter().sum::<u64>();
+        if s > 0 {
+            let s = s as f64;
+            write!(wrt, "{}", i + 1 + trim)?;
+            for k in [0, 1, 3, 2] {
+                let y = (ct.cts()[k] as f64) / s;
+                write!(wrt, "\t{:.5}", y)?;
+            }
+            writeln!(wrt)?
         }
-        writeln!(wrt)?
     }
     Ok(())
 }

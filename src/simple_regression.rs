@@ -13,15 +13,21 @@ impl Coefficient {
         self.estimate
     }
 
-    pub fn t_statistic(&self) -> f64 {
-        self.estimate / self.standard_error
+    pub fn t_statistic(&self) -> Option<f64> {
+        if self.standard_error > 0.0 {
+            Some(self.estimate / self.standard_error)
+        } else {
+            None
+        }
     }
-    pub fn p(&self) -> f64 {
-        let v = self.df as f64;
-        let s = StudentsT::new(v).expect("Invalid df");
+    pub fn p(&self) -> Option<f64> {
         let t = self.t_statistic();
         // 2-sided t-test
-        2.0 * s.pt(-t.abs())
+        t.map(|t| {
+            let v = self.df as f64;
+            let s = StudentsT::new(v).expect("Invalid df");
+            2.0 * s.pt(-t.abs())
+        })
     }
 }
 #[derive(Debug)]
@@ -124,7 +130,9 @@ mod test {
         let obs = [(1.0, 4.0), (2.0, 6.0), (4.0, 7.0), (3.0, 6.5), (5.0, 10.0)];
         let reg = simple_regression(&obs).expect("Error in regression");
         println!("{:?}", reg);
-        println!("{}", reg.slope().p());
-        assert!((reg.slope().p() - 0.0140732510).abs() < 1.0e-8);
+        if let Some(p) = reg.slope().p() {
+            println!("{:?}", p);
+        }
+        assert!((reg.slope().p().unwrap() - 0.0140732510).abs() < 1.0e-8);
     }
 }

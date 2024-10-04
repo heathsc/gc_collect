@@ -146,7 +146,8 @@ pub struct Counts([u64; 5]);
 impl Counts {
     fn from_temp_counts(t: &TempCounts) -> Self {
         let n = t.N.unwrap_or(0) + t.Other.unwrap_or(0);
-        Self([t.A, t.C, t.T, t.G, n])
+        let ct = Self([t.A, t.C, t.T, t.G, n]);
+        ct
     }
 
     pub fn cts(&self) -> &[u64; 5] {
