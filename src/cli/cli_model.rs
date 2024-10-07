@@ -33,6 +33,13 @@ pub(super) fn cli_model() -> Command {
                 .help("Silence all output"),
         )
         .arg(
+            Arg::new("regression")
+                .short('R')
+                .action(ArgAction::SetTrue)
+                .long("regression")
+                .help("Perform regression of base composition along reads"),
+        )
+        .arg(
             Arg::new("merge")
                 .short('m')
                 .action(ArgAction::SetTrue)
@@ -79,13 +86,6 @@ pub(super) fn cli_model() -> Command {
                 .value_parser(value_parser!(PathBuf))
                 .value_name("OUTPUT")
                 .help("Main output file [default: <stdout>]"),
-        )
-        .arg(
-            Arg::new("no_header")
-                .short('H')
-                .long("no-header")
-                .action(ArgAction::SetTrue)
-                .help("Do not add header to output file"),
         )
         .arg(
             Arg::new("input")

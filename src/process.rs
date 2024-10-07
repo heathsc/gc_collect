@@ -1,8 +1,4 @@
-use std::{
-    fmt,
-    io::Write,
-    path::Path,
-};
+use std::{fmt, io::Write, path::Path};
 
 use anyhow::Context;
 use compress_io::compress::CompressIo;
@@ -38,6 +34,11 @@ impl fmt::Display for DataResults {
         write!(f, "{}", self.mean_gc)?;
         output_opt_f64(self.ref_mean_gc, f)?;
         output_opt_f64(self.kl_distance, f)?;
+
+        if let Some(kc) = self.kmer_coverage.as_ref() {
+            write!(f, "\t{kc}")?
+        }
+
         if let Some(v) = self.regression.as_ref() {
             for i in [0, 1, 3, 2] {
                 let r = &v[i];
@@ -48,14 +49,9 @@ impl fmt::Display for DataResults {
                     write!(f, "NA")?
                 }
             }
-        } else {
-            write!(f, "\tNA\tNA\tNA\tNA\tNA\tNA\tNA\tNA")?
         }
-        if let Some(kc) = self.kmer_coverage.as_ref() {
-            write!(f, "\t{kc}")
-        } else {
-            Ok(())
-        }
+
+        Ok(())
     }
 }
 
@@ -163,7 +159,12 @@ fn analyze_dataset(cfg: &Config, d: &DataSet) -> anyhow::Result<DataResults> {
     output_per_cycle_bases(d, path).with_context(|| "Error writing per cycle base distribution")?;
     let mean_gc = mean_gc(d.gc_counts().unwrap());
     let (kl_distance, ref_mean_gc) = compare_to_reference(cfg, path, d)?;
-    let regression = base_content_regressions(d);
+    
+    let regression = if cfg.regression() {
+        base_content_regressions(d)
+    } else {
+        None
+    };
 
     let kmer_coverage = if let Some(kc) = d.kmer_counts() {
         kc.kmer_coverage(cfg)

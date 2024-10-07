@@ -1,6 +1,6 @@
 [package]
 name = "gc_collect"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 authors = ["Simon Heath <simon.heath@gmail.com>"]
 description = "Collect stats from fastqc_gc and make report"

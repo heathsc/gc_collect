@@ -13,7 +13,7 @@ pub struct Config {
     output_file: Option<PathBuf>,
     ref_dist: Option<RefDist>,
     threads: usize,
-    no_header: bool,
+    regression: bool,
     kmcv: Option<Kmcv>,
     merge_key: Option<MergeKey>,
 }
@@ -31,8 +31,8 @@ impl Config {
     pub fn ref_dist(&self) -> Option<&RefDist> {
         self.ref_dist.as_ref()
     }
-    pub fn no_header(&self) -> bool {
-        self.no_header
+    pub fn regression(&self) -> bool {
+        self.regression
     }
     pub fn kmcv(&self) -> Option<&Kmcv> {
         self.kmcv.as_ref()
@@ -67,8 +67,9 @@ pub fn handle_cli() -> anyhow::Result<Config> {
         })?),
         None => None,
     };
-    let no_header = m.get_flag("no_header");
 
+    let regression = m.get_flag("regression");
+    
     let merge_key = m.get_one::<MergeKey>("merge_by").copied().or_else(|| {
         if m.get_flag("merge") {
             Some(MergeKey::Default)
@@ -99,7 +100,7 @@ pub fn handle_cli() -> anyhow::Result<Config> {
         merge_key,
         threads,
         ref_dist,
-        no_header,
+        regression,
         kmcv,
     })
 }
